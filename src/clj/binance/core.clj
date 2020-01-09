@@ -1,4 +1,4 @@
-(ns bitkub.core
+(ns binance.core
   (:require [clj-http.client :as client]
             [cheshire.core :as json]
             [gniazdo.core :as ws]
@@ -30,7 +30,7 @@
 (comment
   (books {:sym "THB_BTC" :lmt 10}))
 
-(def websocket-url "wss://api.bitkub.com/websocket-api")
+(def websocket-url "wss://stream.binance.com:9443")
 ;;(def websocket-url "wss://api.bitkub.com/websocket-api/market.ticker.thb_btc")
 
 (defn stream-ticker []
@@ -41,8 +41,19 @@
 (comment
   (stream-ticker)
   (def socket
-    (ws/connect
-      "wss://api.bitkub.com/websocket-api/market.ticker.thb_btc"
-      :on-receive #(prn 'received %)))
-  (ws/send-msg socket "hello")
+    (let [url (str websocket-url "/ws/" "BTCUSD@ticker")
+          conn (ws/connect url
+                 :on-receive #(prn 'received (json/parse-string %)))]
+      (ws/send-msg conn
+        (json/generate-string
+          {"method" "SUBSCRIBE",
+           "params" ["btcusdt@ticker"]
+           "id" 1}))
+      conn))
+  (ws/send-msg socket
+    (json/generate-string
+      {"method" "SUBSCRIBE",
+       "params" ["btcusdt@ticker"]
+       "id" 1}))
+
   (ws/close socket))
