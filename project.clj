@@ -42,7 +42,9 @@
                  [ring/ring-core "1.8.0"]
                  [ring/ring-defaults "0.3.2"]
                  [selmer "1.12.18"]
-                 [thheller/shadow-cljs "2.8.69" :scope "provided"]]
+                 [thheller/shadow-cljs "2.8.69" :scope "provided"]
+                 [clj-http "3.10.0"]
+                 [stylefruits/gniazdo "1.1.2"]]
 
   :min-lein-version "2.0.0"
   
@@ -108,9 +110,9 @@
                   :injections [(require 'pjstadig.humane-test-output)
                                (pjstadig.humane-test-output/activate!)]}
    :project/test {:jvm-opts ["-Dconf=test-config.edn"]
-                  :resource-paths ["env/test/resources"]
+                  :resource-paths ["env/test/resources"]}
                   
                   
-                  }
+                  
    :profiles/dev {}
    :profiles/test {}})
