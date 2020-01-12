@@ -37,14 +37,14 @@
                  [org.webjars.npm/material-icons "0.3.1"]
                  [org.webjars/webjars-locator "0.38"]
                  [re-frame "0.10.9"]
-                 [reagent "0.9.0-rc3"]
+                 [reagent "0.9.0-rc4"]
                  [ring-webjars "0.2.0"]
                  [ring/ring-core "1.8.0"]
                  [ring/ring-defaults "0.3.2"]
                  [selmer "1.12.18"]
-                 [thheller/shadow-cljs "2.8.69" :scope "provided"]
+                 [thheller/shadow-cljs "2.8.39" :scope "provided"]
                  [clj-http "3.10.0"]
-                 [stylefruits/gniazdo "1.1.2"]]
+                 [haslett "0.1.6"]]
 
   :min-lein-version "2.0.0"
   
@@ -66,19 +66,18 @@
      :output-dir "target/cljsbuild/public/js"
      :asset-path "/js"
      :modules {:app {:entries [art-bot.app]}}
-     :devtools
-     {:watch-dir "resources/public" :preloads [re-frisk.preload]}
-     :dev
-     {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}}
+     ;:compiler-options {:source-map true}
+     :devtools {:watch-dir "resources/public" :preloads [re-frisk.preload]}
+     :dev {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}}
     :test
     {:target :node-test
      :output-to "target/test/test.js"
      :autorun true}}}
   
-  :npm-deps [[shadow-cljs "2.8.69"]
+  :npm-deps [[shadow-cljs "2.8.39"]
              [create-react-class "15.6.3"]
-             [react "16.8.6"]
-             [react-dom "16.8.6"]]
+             [react "16.12.0"]
+             [react-dom "16.12.0"]]
 
   :profiles
   {:uberjar {:omit-source true
