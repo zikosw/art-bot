@@ -41,96 +41,120 @@
    [:img {:src "/img/warning_clojure.png"}]])
 
 
+(defn price-row [ex pair {:keys [buy sell] :as ticker}]
+  [:tr.even:bg-gray-100
+    [:td.p-2 (name ex)]
+    [:td.p-2.text-center (str pair)] 
+    [:td.p-2.text-right (str buy)]
+    [:td.p-2.text-right (str sell)]])
 
-(rf/reg-sub
-  :ticker
-  (fn [db [_ exchange coin market]]
-    (get-in db [(keyword (name exchange) "ticker") coin market])))
+(defn fixed2 [number]
+  (.toFixed number 2))
 
-(rf/reg-sub
-  :bitkub/ticker-best
-  (fn [[_ coin market] _]
-    [(rf/subscribe [:ticker :bitkub coin market])])
+(defn art [{:keys [from to steps]}]
+ (let [ticker-sub (fn [ex] (keyword ex "ticker-best"))
+       side-color (fn[step] (case (:side step) :buy "text-green-500" "text-red-500"))
+       get-best   (fn [step sub] (get sub (:side step)))
+       ->coin     (comp first :pair)
+       ->mkt      (comp second :pair)
+       make-sub   (fn[step] [(-> step :at ticker-sub) (->coin step) (->mkt step)]) 
+       get-price  (fn [step] (get-best step (-> step make-sub rf/subscribe deref)))
+       str-pair   (fn [step] (str (apply keyword (:pair step))))
+       step1      (get steps 0)
+       step2      (get steps 1)
+       step3      (get steps 2)
+       price1     (get-price step1)
+       price2     (get-price step2)
+       price3     (get-price step3)
+       isBuy2     (= :buy (:side step2))
+       buy        (* price1 (if isBuy2 price2 1))
+       sell       (* price3 (if-not isBuy2 price2 1))
+       diff       (- sell buy)]
+   [:tr
+    [:td.text-green-800 (str from)]
+    [:td.text-yellow-700 (str to)] 
+    [:td.p-2
+     {:class (side-color step1)} 
+     [:p (str-pair step1)]
+     [:p.font-semibold (fixed2 price1)]] 
+    [:td.p-2
+     {:class (side-color step2)} 
+     [:p (str-pair step2)]
+     [:p.font-semibold (fixed2 price2)]]
+    [:td.p-2
+     {:class (side-color step3)} 
+     [:p (str-pair step3)]
+     [:p.font-semibold (fixed2 price3)]]
+    [:td.p-2.w-24.text-right (fixed2 buy)] 
+    [:td.p-2.w-24.text-right (fixed2 sell)]
+    [:td.p-2.w-24.text-right
+     {:class ["font-bold" (if (> diff 0) "text-green-500" "text-red-500")]} 
+     (fixed2 diff)]
+    [:td.p-2.w-24.text-right
+     {:class ["font-bold" (if (> diff 0) "text-green-500" "text-red-500")]} 
+     (fixed2 (-> diff (/ buy) (* 10000)))]]))
 
-  ;; Computation Function
-  (fn [[ticker] _]
-    {:buy  (js/Number (get ticker "highestBid"))
-     :sell (js/Number (get ticker "lowestAsk"))}))
 
-(rf/reg-sub
-  :binance/ticker-best
-  (fn [[_ coin market] _]
-    [(rf/subscribe [:ticker :binance coin market])])
-
-  ;; Computation Function
-  (fn [[ticker] _]
-    {:buy  (js/Number (get ticker "b"))
-     :sell (js/Number (get ticker "a"))}))
-
-(comment
-
-  (let [exchange :binance
-        coin :btc
-        market :thb]
-    [(keyword (name exchange) "ticker") coin market])
-  (rf/subscribe [:ticker :bitkub :btc :thb])
-  (rf/subscribe [:ticker :binance :btc :thb])
-
-  (rf/subscribe [:bitkub/ticker-best :btc :thb])
-  (rf/subscribe [:bitkub/ticker-best :usdt :thb])
-  (rf/subscribe [:binance/ticker-best :btc :usdt])
-
-  (rf/dispatch [:bitkub/ticker-start :btc :thb])
-
-
-  (rf/subscribe [:bitkub/ticker :btc :thb])
-  (get-in
-    (deref re-frame.db/app-db)
-    [:bitkub/ticker :btc :thb "lowestAsk"]))
+(defn arbitrage []
+  [:table.shadow-lg.rounded-lg.table-auto.overflow-hidden.text-center
+    [:thead.capitalize
+     [:tr.bg-gray-300
+      [:th.p-2 "from"]
+      [:th.p-2 "to"]
+      [:th.p-2 "start"]
+      [:th.p-2 "medium"]
+      [:th.p-2 "final"]
+      [:th.p-2 "buy"]
+      [:th.p-2 "sell"]
+      [:th.p-2 "+/-"]
+      [:th.p-2 "10k THB"]]]
+    [:tbody
+     [art {:from :binance
+           :to   :bitkub
+           :steps [{:pair [:usdt  :thb] :side :buy :at :bitkub}
+                   {:pair [:eth  :usdt] :side :buy :at :binance}
+                   {:pair [:eth :thb ]  :side :sell :at :bitkub}]}]
+     [art {:from  :bitkub
+           :to    :binance
+           :steps [{:pair [:eth  :thb]  :side :buy :at :bitkub}
+                   {:pair [:eth  :usdt] :side :sell :at :binance}
+                   {:pair [:usdt :thb ] :side :sell :at :bitkub}]}]
+     [art {:from  :binance
+           :to    :bitkub
+           :steps [{:pair [:usdt  :thb] :side :buy :at :bitkub}
+                   {:pair [:btc  :usdt] :side :buy :at :binance}
+                   {:pair [:btc :thb ]  :side :sell :at :bitkub}]}]
+     [art {:from  :bitkub
+           :to    :binance
+           :steps [{:pair [:btc  :thb]  :side :buy :at :bitkub}
+                   {:pair [:btc  :usdt] :side :sell :at :binance}
+                   {:pair [:usdt :thb ] :side :sell :at :bitkub}]}]]])
+     
 
 (defn home-page []
-  [:section.section>div.container>div.content
-   (let [docs @(rf/subscribe [:docs])]
-         
-     [:div
-      [:h3 ";; todo - need trade fee"]
-      [:h3 ";; todo - need withdrawal fee"]
-      (let [{:keys [buy sell]} @(rf/subscribe [:bitkub/ticker-best :btc :thb])]
-        [:div
-         [:h3 "bitkub btc/thb"]
-         [:p "buy: " buy]
-         [:p "sell: " sell]])
-      (let [{:keys [buy sell]} @(rf/subscribe [:bitkub/ticker-best :usdt :thb])]
-        [:div
-         [:h3 "bitkub usdt/thb"]
-         [:p "buy: " buy]
-         [:p "sell: " sell]])
-      (let [{:keys [buy sell]} @(rf/subscribe [:binance/ticker-best :btc :usdt])]
-        [:div
-         [:h3 "binance btc/usdt"]
-         [:p "buy: " buy]
-         [:p "sell: " sell]])
-      (let [btcthb  (:sell @(rf/subscribe [:bitkub/ticker-best :btc :thb]))
-            usdtthb (:buy @(rf/subscribe [:bitkub/ticker-best :usdt :thb]))
-            btcusd  (:buy @(rf/subscribe [:binance/ticker-best :btc :usdt]))]
-        [:div
-         [:h3 "buy binance >> sell bitkub"]
-         [:p "buy btc/usdt -> sell btc/thb -> buy usdt/thb"]
-         [:p "buy btc/usd" btcusd]
-         [:p "buy usdt/thb" usdtthb]
-         [:p "binance buy btc/usdt : " (* btcusd usdtthb)]
-         [:p "bitkub  sell  btc/thb  : " btcthb]])
-      (let [btcthb  (:buy @(rf/subscribe [:bitkub/ticker-best :btc :thb]))
-            usdtthb (:sell @(rf/subscribe [:bitkub/ticker-best :usdt :thb]))
-            btcusd  (:sell @(rf/subscribe [:binance/ticker-best :btc :usdt]))]
-        [:div
-         [:h3 "buy bitkub >> sell binance"]
-         [:p "buy btc/thb -> sell btc/usdt -> sell usdt/thb"]
-         [:p "sell btc/usd" btcusd]
-         [:p "sell usdt/thb" usdtthb]
-         [:p "bitkub  buy  btc/thb  : " btcthb]
-         [:p "binance sell btc/usdt : " (* btcusd usdtthb)]])
-      [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}]])])
+  [:div.p-8.mx-auto.font-mono
+   [:div
+    [:h3.text-lg ";; todo - need trade fee"]
+    [:h3.text-lg ";; todo - need withdrawal fee"]
+    [:div.p-2]
+    [:table.shadow-lg.rounded-lg.table-auto.overflow-hidden
+     [:thead
+      [:tr.bg-gray-300.capitalize.border-b-2.border-gray-600
+        [:th.p-2 "exchange"]
+        [:th.p-2 "pair"]
+        [:th.p-2.w-24 "buy"]
+        [:th.p-2.w-24 "sell"]]]
+     [:tbody
+      (let [ticker @(rf/subscribe [:bitkub/ticker-best :btc :thb])]
+        [price-row :bitkub :btc/thb ticker]) 
+      (let [ticker @(rf/subscribe [:bitkub/ticker-best :usdt :thb])]
+        [price-row :bitkub :usdt/thb ticker])
+      (let [ticker @(rf/subscribe [:binance/ticker-best :btc :usdt])]
+        [price-row :binance :btc/usdt ticker])]]
+    [:div.py-4
+     [:h3.text-lg.font-bold.py-2 "Arbitrage"]
+     [arbitrage]]]])
+     
 
 (def pages
   {:home #'home-page
@@ -138,7 +162,7 @@
 
 (defn page []
   [:div
-   [navbar]
+   ;[navbar]
    [(pages @(rf/subscribe [:page]))]])
 
 ;; -------------------------
@@ -170,12 +194,14 @@
 
 (defn init! []
   (rf/dispatch-sync [:navigate (reitit/match-by-name router :home)])
-  (rf/dispatch [:bitkub/ticker-start :btc :thb])
-  (rf/dispatch [:bitkub/ticker-start :usdt :thb])
-  (rf/dispatch [:binance/ticker-start :btc :usdt])
   
   (ajax/load-interceptors!)
-  (rf/dispatch [:fetch-docs])
+  ;; (rf/dispatch [:fetch-docs])
   (hook-browser-navigation!)
-  (mount-components))
+  (mount-components)
+  (rf/dispatch [:bitkub/ticker-start :btc :thb])
+  (rf/dispatch [:bitkub/ticker-start :eth :thb])
+  (rf/dispatch [:bitkub/ticker-start :usdt :thb])
+  (rf/dispatch [:binance/ticker-start :btc :usdt])
+  (rf/dispatch [:binance/ticker-start :eth :usdt]))
 

@@ -44,6 +44,7 @@
                  [selmer "1.12.18"]
                  [thheller/shadow-cljs "2.8.39" :scope "provided"]
                  [clj-http "3.10.0"]
+                 [com.cognitect/transit-cljs "0.8.256"]
                  [haslett "0.1.6"]]
 
   :min-lein-version "2.0.0"
@@ -66,7 +67,6 @@
      :output-dir "target/cljsbuild/public/js"
      :asset-path "/js"
      :modules {:app {:entries [art-bot.app]}}
-     ;:compiler-options {:source-map true}
      :devtools {:watch-dir "resources/public" :preloads [re-frisk.preload]}
      :dev {:closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}}}
     :test
@@ -74,10 +74,13 @@
      :output-to "target/test/test.js"
      :autorun true}}}
   
-  :npm-deps [[shadow-cljs "2.8.39"]
-             [create-react-class "15.6.3"]
-             [react "16.12.0"]
-             [react-dom "16.12.0"]]
+  ;; :npm-deps [[shadow-cljs "2.8.39"]
+  ;;            [create-react-class "15.6.3"]
+  ;;            [react "16.12.0"]
+  ;;            [react-dom "16.12.0"]
+  ;;            [tailwindcss "^1.1.4"]
+  ;;            [postcss-cli "^7.1.0"]
+  ;;            [autoprefixer "^9.7.3"]]
 
   :profiles
   {:uberjar {:omit-source true

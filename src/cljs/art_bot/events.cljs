@@ -14,7 +14,7 @@
          from-ch ([data]
                   (if data
                     (do
-                      (println data)
+                      (println :received rf-path)
                       (rf/dispatch [:set rf-path data])
                       (recur))
                     (println :exit-on-nil)))
@@ -88,3 +88,49 @@
   :common/error
   (fn [db _]
     (:common/error db)))
+
+(rf/reg-sub
+  :ticker
+  (fn [db [_ exchange coin market]]
+    (get-in db [(keyword (name exchange) "ticker") coin market])))
+
+(rf/reg-sub
+  :bitkub/ticker-best
+  (fn [[_ coin market] _]
+    [(rf/subscribe [:ticker :bitkub coin market])])
+
+  ;; Computation Function
+  (fn [[ticker] _]
+    {:buy  (js/Number (get ticker :highestBid))
+     :sell (js/Number (get ticker :lowestAsk))}))
+
+(rf/reg-sub
+  :binance/ticker-best
+  (fn [[_ coin market] _]
+    [(rf/subscribe [:ticker :binance coin market])])
+
+  ;; Computation Function
+  (fn [[ticker] _]
+    {:buy  (js/Number (get ticker :b))
+     :sell (js/Number (get ticker :a))}))
+
+(comment
+
+  (let [exchange :binance
+        coin :btc
+        market :thb]
+    [(keyword (name exchange) "ticker") coin market])
+  (rf/subscribe [:ticker :bitkub :btc :thb])
+  (rf/subscribe [:ticker :binance :btc :thb])
+
+  (rf/subscribe [:bitkub/ticker-best :btc :thb])
+  (rf/subscribe [:bitkub/ticker-best :usdt :thb])
+  (rf/subscribe [:binance/ticker-best :btc :usdt])
+
+  (rf/dispatch [:bitkub/ticker-start :btc :thb])
+
+
+  (rf/subscribe [:bitkub/ticker :btc :thb])
+  (get-in
+    (deref re-frame.db/app-db)
+    [:bitkub/ticker :btc :thb "lowestAsk"]))
