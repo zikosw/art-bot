@@ -11,7 +11,7 @@
 
 
 
-(defn connect [coin market]
+(defn stream-ticker [coin market]
   (go
     ;; (let [url (str websocket-url "/ws/" "BTCUSD@ticker")]) ;; use coin market here
     (let [url (str websocket-url "/ws/" (str (name coin) (name market) "@ticker")) ;; use coin market here
@@ -21,6 +21,10 @@
                           "id" 1})
       stream)))
 
+(defn stream-depth [coin market]
+  (go
+    (let [url (str websocket-url "/stream?streams=" (name coin) (name market) "@depth@100ms")]
+      (<! (ws/connect url {:format j/haslett-json})))))
 
 (defn close [exit-ch]
   (go (ws/close (<! exit-ch))))
@@ -28,14 +32,25 @@
 (comment
 
   (def conn (connect :btc :usdt))
-  (def ex (e/run conn [:binance/ticker :btc :usdt])))
+  (def ex (e/run conn [:binance/ticker :btc :usdt]))
+
+
+
+  (def ex (e/run dp [:binance/depth :btc :usdt])))
 
 
 
 (rf/reg-event-db
   :binance/ticker-start
   (fn [db [_ coin market]]
-    (let [conn (connect coin market)
+    (let [conn (stream-ticker coin market)
           exit-ch (e/run conn [:binance/ticker coin market])]
-      (assoc-in db [:binance/stream coin market] exit-ch))))
+      (assoc-in db [:binance/stream-ticker coin market] exit-ch))))
+
+(rf/reg-event-db
+  :binance/depth-start
+  (fn [db [_ coin market]]
+    (let [conn (stream-depth coin market)
+          exit-ch (e/run conn [:binance/depth coin market])]
+      (assoc-in db [:binance/stream-ticker coin market] exit-ch))))
 

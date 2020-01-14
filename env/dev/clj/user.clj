@@ -2,14 +2,14 @@
   "Userspace functions you can run by default in your local REPL."
   (:require
    [art-bot.config :refer [env]]
-    [clojure.pprint]
-    [clojure.spec.alpha :as s]
-    [expound.alpha :as expound]
-    [mount.core :as mount]
-    [art-bot.core :refer [start-app]]
-    [art-bot.db.core]
-    [conman.core :as conman]
-    [luminus-migrations.core :as migrations]))
+   [clojure.pprint]
+   [clojure.spec.alpha :as s]
+   [expound.alpha :as expound]
+   [mount.core :as mount]
+   [art-bot.core :refer [start-app]]
+   [art-bot.db.core]
+   [conman.core :as conman]
+   [luminus-migrations.core :as migrations]))
 
 (alter-var-root #'s/*explain-out* (constantly expound/printer))
 
@@ -61,3 +61,6 @@
   (migrations/create name (select-keys env [:database-url])))
 
 
+(comment
+  ;; connect to cljs nrepl
+  (shadow/repl :app))

@@ -92,68 +92,109 @@
      (fixed2 diff)]
     [:td.p-2.w-24.text-right
      {:class ["font-bold" (if (> diff 0) "text-green-500" "text-red-500")]} 
-     (fixed2 (-> diff (/ buy) (* 10000)))]]))
+     (fixed2 (-> diff (/ buy) (* 100000)))]]))
 
 
 (defn arbitrage []
-  [:table.shadow-lg.rounded-lg.table-auto.overflow-hidden.text-center
-    [:thead.capitalize
-     [:tr.bg-gray-300
-      [:th.p-2 "from"]
-      [:th.p-2 "to"]
-      [:th.p-2 "start"]
-      [:th.p-2 "medium"]
-      [:th.p-2 "final"]
-      [:th.p-2 "buy"]
-      [:th.p-2 "sell"]
-      [:th.p-2 "+/-"]
-      [:th.p-2 "10k THB"]]]
-    [:tbody
-     [art {:from :binance
-           :to   :bitkub
-           :steps [{:pair [:usdt  :thb] :side :buy :at :bitkub}
-                   {:pair [:eth  :usdt] :side :buy :at :binance}
-                   {:pair [:eth :thb ]  :side :sell :at :bitkub}]}]
-     [art {:from  :bitkub
-           :to    :binance
-           :steps [{:pair [:eth  :thb]  :side :buy :at :bitkub}
-                   {:pair [:eth  :usdt] :side :sell :at :binance}
-                   {:pair [:usdt :thb ] :side :sell :at :bitkub}]}]
-     [art {:from  :binance
-           :to    :bitkub
-           :steps [{:pair [:usdt  :thb] :side :buy :at :bitkub}
-                   {:pair [:btc  :usdt] :side :buy :at :binance}
-                   {:pair [:btc :thb ]  :side :sell :at :bitkub}]}]
-     [art {:from  :bitkub
-           :to    :binance
-           :steps [{:pair [:btc  :thb]  :side :buy :at :bitkub}
-                   {:pair [:btc  :usdt] :side :sell :at :binance}
-                   {:pair [:usdt :thb ] :side :sell :at :bitkub}]}]]])
-     
+  [:div
+    [:h3.py-2.text-lg.font-bold.text-white "Arbitrage"]
+    [:table.shadow-lg.rounded-lg.table-auto.overflow-hidden.text-center
+      [:thead.capitalize
+       [:tr.bg-gray-300
+        [:th.p-2 "from"]
+        [:th.p-2 "to"]
+        [:th.p-2 "start"]
+        [:th.p-2 "medium"]
+        [:th.p-2 "final"]
+        [:th.p-2 "buy"]
+        [:th.p-2 "sell"]
+        [:th.p-2 "+/-"]
+        [:th.p-2 "100k THB"]]]
+      [:tbody.bg-gray-200
+       [art {:from :binance
+             :to   :bitkub
+             :steps [{:pair [:usdt  :thb] :side :buy :at :bitkub}
+                     {:pair [:eth  :usdt] :side :buy :at :binance}
+                     {:pair [:eth :thb ]  :side :sell :at :bitkub}]}]
+       [art {:from  :bitkub
+             :to    :binance
+             :steps [{:pair [:eth  :thb]  :side :buy :at :bitkub}
+                     {:pair [:eth  :usdt] :side :sell :at :binance}
+                     {:pair [:usdt :thb ] :side :sell :at :bitkub}]}]
+       [art {:from  :binance
+             :to    :bitkub
+             :steps [{:pair [:usdt  :thb] :side :buy :at :bitkub}
+                     {:pair [:btc  :usdt] :side :buy :at :binance}
+                     {:pair [:btc :thb ]  :side :sell :at :bitkub}]}]
+       [art {:from  :bitkub
+             :to    :binance
+             :steps [{:pair [:btc  :thb]  :side :buy :at :bitkub}
+                     {:pair [:btc  :usdt] :side :sell :at :binance}
+                     {:pair [:usdt :thb ] :side :sell :at :bitkub}]}]]]])
+
+(defn depth-books [books component]
+  [:div
+   (for [[price qty] books ;; TODO: FOR [SELL] need to drop until 10 left, not take 10
+         :when (not= qty "0.00000000")] ;; TODO: qty=0 is use for delete the old order
+     ^{:key price} [component price qty])])
+
+(defn depth []
+  (let [data (:data @(rf/subscribe [:depth :binance :btc :usdt]))
+        bids (:b data)
+        asks (:a data)
+        bid-com (fn [p q]
+                  [:div.flex.relative
+                   [:p {:class "absolute top-0 rigth-0 z-10 h-full max-w-full bg-green-900 opacity-50"
+                        :style {:width (str (* 10 (js/Number q)) "%")}}]
+                   [:p {:class "w-1/3 z-20 font-thin text-green-600"} (str p)]
+                   [:p {:class "w-1/3 z-20 text-right"} (str q)]
+                   [:p {:class "w-1/3 z-20 text-right"} (-> (* (js/Number p) (js/Number q))
+                                                            (.toFixed 8))]])
+        ask-com (fn [p q]
+                  [:div.flex.relative
+                   [:p {:class "absolute top-0 rigth-0 z-10 h-full max-w-full bg-red-900 opacity-50"
+                        :style {:width (str (* 10 (js/Number q)) "%")}}]
+                   [:p {:class "w-1/3 z-20 text-red-600"} (str p)]
+                   [:p {:class "w-1/3 z-20 text-right"} (str q)]
+                   [:p {:class "w-1/3 z-20 text-right"} (-> (* (js/Number p) (js/Number q))
+                                                          (.toFixed 8))]])]
+    [:div.p-6.text-gray-300
+     [:div
+      [:div.flex
+       [:p {:class "w-1/3"} "Price (USDT)"]
+       [:p {:class "w-1/3 text-right"} "Amount (BTC)"]
+       [:p {:class "w-1/3 text-right"} "Total (UST)"]]
+      [depth-books asks ask-com]]
+     [:div
+      [depth-books bids bid-com]]]))
+
+
+
+(defn prices []
+  [:table.shadow-lg.rounded-lg.table-auto.overflow-hidden
+   [:thead
+    [:tr.bg-gray-300.capitalize.border-b-2.border-gray-600
+     [:th.p-2 "exchange"]
+     [:th.p-2 "pair"]
+     [:th.p-2.w-24 "buy"]
+     [:th.p-2.w-24 "sell"]]]
+   [:tbody
+    (let [ticker @(rf/subscribe [:bitkub/ticker-best :btc :thb])]
+      [price-row :bitkub :btc/thb ticker])
+    (let [ticker @(rf/subscribe [:bitkub/ticker-best :usdt :thb])]
+      [price-row :bitkub :usdt/thb ticker])
+    (let [ticker @(rf/subscribe [:binance/ticker-best :btc :usdt])]
+      [price-row :binance :btc/usdt ticker])]])
 
 (defn home-page []
-  [:div.p-8.mx-auto.font-mono
+  [:div.absolute.inset-0.w-full.h-full.p-8.mx-auto.font-mono.bg-gray-800
    [:div
     [:h3.text-lg ";; todo - need trade fee"]
     [:h3.text-lg ";; todo - need withdrawal fee"]
     [:div.p-2]
-    [:table.shadow-lg.rounded-lg.table-auto.overflow-hidden
-     [:thead
-      [:tr.bg-gray-300.capitalize.border-b-2.border-gray-600
-        [:th.p-2 "exchange"]
-        [:th.p-2 "pair"]
-        [:th.p-2.w-24 "buy"]
-        [:th.p-2.w-24 "sell"]]]
-     [:tbody
-      (let [ticker @(rf/subscribe [:bitkub/ticker-best :btc :thb])]
-        [price-row :bitkub :btc/thb ticker]) 
-      (let [ticker @(rf/subscribe [:bitkub/ticker-best :usdt :thb])]
-        [price-row :bitkub :usdt/thb ticker])
-      (let [ticker @(rf/subscribe [:binance/ticker-best :btc :usdt])]
-        [price-row :binance :btc/usdt ticker])]]
     [:div.py-4
-     [:h3.text-lg.font-bold.py-2 "Arbitrage"]
-     [arbitrage]]]])
+     #_[arbitrage]
+     [depth]]]])
      
 
 (def pages
@@ -199,6 +240,8 @@
   ;; (rf/dispatch [:fetch-docs])
   (hook-browser-navigation!)
   (mount-components)
+  (rf/dispatch [:binance/depth-start :btc :usdt])
+  (rf/dispatch [:bitkub/ticker-start :usdt :thb])
   (rf/dispatch [:bitkub/ticker-start :btc :thb])
   (rf/dispatch [:bitkub/ticker-start :eth :thb])
   (rf/dispatch [:bitkub/ticker-start :usdt :thb])

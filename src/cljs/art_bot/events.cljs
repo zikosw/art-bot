@@ -95,6 +95,15 @@
     (get-in db [(keyword (name exchange) "ticker") coin market])))
 
 (rf/reg-sub
+  :depth
+  (fn [db [_ exchange coin market]]
+    (get-in db [(keyword (name exchange) "depth") coin market])))
+
+(comment
+  (get-in @(rf/subscribe [:depth :binance :btc :usdt]) [:data :b])
+  (get-in @(rf/subscribe [:depth :binance :btc :usdt]) [:data :a]))
+
+(rf/reg-sub
   :bitkub/ticker-best
   (fn [[_ coin market] _]
     [(rf/subscribe [:ticker :bitkub coin market])])
