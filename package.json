@@ -14,7 +14,8 @@
     "start": "lein shadow watch app",
     "build": "lein shadow release app",
     "css": "postcss src/styles.css -o resources/public/css/main.css",
-    "css:prod": "NODE_ENV=production postcss src/styles.css -o resources/public/css/main.css"
+    "css:prod": "NODE_ENV=production postcss src/styles.css -o resources/public/css/main.css",
+    "deploy": "cp -r resources/public/* public && cp -r target/cljsbuild/public/js/* public/js && firebase deploy"
   }
 }
 

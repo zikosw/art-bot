@@ -17,3 +17,6 @@ shadow-cljs.edn
 /log
 .idea/*
 *.iml
+public/*
+.firebaserc
+.firebase/*
