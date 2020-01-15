@@ -23,7 +23,7 @@
 
 (defn stream-depth [coin market]
   (go
-    (let [url (str websocket-url "/stream?streams=" (name coin) (name market) "@depth@100ms")]
+    (let [url (str websocket-url "/stream?streams=" (name coin) (name market) "@depth")]
       (<! (ws/connect url {:format j/haslett-json})))))
 
 (defn close [exit-ch]

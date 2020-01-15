@@ -143,3 +143,32 @@
   (get-in
     (deref re-frame.db/app-db)
     [:bitkub/ticker :btc :thb "lowestAsk"]))
+
+
+
+
+(rf/reg-event-fx
+  :satang-pro/ticker-fetch
+  (fn [_ [_ kw-coin kw-market]]
+    (let [coin (name kw-coin)
+          market (name kw-market)]
+      {:http-xhrio {:method          :get
+                    :uri             (str "https://api.tdax.com/api/orders/stack?limit=10&offset=0&pair=" coin "_" market)
+                    :response-format (ajax/json-response-format {:keywords? true})
+                    :on-success       [:set [:satang-pro/ticker kw-coin kw-market]]}})))
+
+(rf/reg-sub
+  :satang-pro/ticker-best
+  (fn [[_ coin market] _]
+    [(rf/subscribe [:ticker :satang-pro coin market])])
+
+  ;; Computation Function
+  (fn [[ticker] _]
+    {:buy  (js/Number (get-in ticker [:bid 0 :price]))
+     :sell (js/Number (get-in ticker [:ask 0 :price]))}))
+
+(comment
+  (rf/dispatch [:satang-pro/ticker-fetch :btc :thb])
+  (rf/dispatch [:satang-pro/ticker-fetch :eth :thb])
+  (rf/dispatch [:satang-pro/ticker-fetch :usdt :thb])
+  (rf/subscribe [:satang-pro/ticker-best :btc :thb]))
