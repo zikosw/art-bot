@@ -10,7 +10,11 @@
   },
   "devDependencies": {},
   "scripts": {
-    "build": "postcss src/styles.css -o resources/public/css/main.css"
+    "serve": "lein run",
+    "start": "lein shadow watch app",
+    "build": "lein shadow release app",
+    "css": "postcss src/styles.css -o resources/public/css/main.css",
+    "css:prod": "NODE_ENV=production postcss src/styles.css -o resources/public/css/main.css"
   }
 }
 
